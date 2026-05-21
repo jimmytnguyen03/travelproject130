@@ -40,6 +40,7 @@ const Booking = sequelize.define("Booking", {
     allowNull: false,
     defaultValue: "Pending",
   },
+
 });
 
 module.exports = Booking;
