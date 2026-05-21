@@ -82,7 +82,7 @@ router.get("/attractions/search", async (req, res) => {
 
 //~~  GET /api/v1/users/login~~
 // Changed to POST
-router.post("/users/login", async (req, res) => {
+router.get("/users/login", async (req, res) => {
   try {
     const { email, password, tenantDomain } = req.query;
 
