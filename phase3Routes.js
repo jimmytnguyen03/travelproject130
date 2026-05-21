@@ -219,106 +219,190 @@ return res.json({
 });
 
 
-//~~  GET /api/v1/users/login~~
-// Changed to POST
-router.get("/users/login", async (req, res) => {
+// POST /api/v1/bookings
+router.post("/bookings", async (req, res) => {
   try {
-const { email, password } = req.query;
-let { tenantDomain } = req.query;
+    console.log("Incoming booking body:", req.body);
 
-if (!email || !password) {
-  return res.status(400).json({
-    message: "email and password are required"
-  });
-}
+    // Create or find demo tenant for Phase 3
+    let tenant = await Tenant.findOne({
+      where: { domain: "agenta.local" }
+    });
 
-if (!tenantDomain) {
-  tenantDomain = "agenta.local";
-}
-
-    // Default tenant for Phase 3 testing if frontend does not send tenantDomain
-    if (!tenantDomain) {
-      tenantDomain = "agenta.local";
-    }
-
-    // Phase 3 demo login fallback
-    if (email === "john.doe@example.com" && password === "CMPE-131@2026") {
-      return res.json({
-        message: "Login successful",
-        token: jwt.sign(
-          {
-            userId: 1,
-            tenantId: tenantDomain === "agentb.local" ? 2 : 1,
-          },
-          getJwtSecret(),
-          { expiresIn: "24h" }
-        ),
-        User_ID: 1,
-        user: {
-          id: 1,
-          User_ID: 1,
-          email: "john.doe@example.com",
-          name: "John Doe",
-          tenantId: tenantDomain === "agentb.local" ? 2 : 1,
-          tenantDomain,
-          tenantName: tenantDomain === "agentb.local" ? "Travel Agency B" : "Travel Agency A",
-        },
+    if (!tenant) {
+      tenant = await Tenant.create({
+        name: "TravelEase Alpha",
+        domain: "agenta.local",
       });
     }
 
-
-    const user = await User.findOne({
-      where: { email },
-      include: [
-        {
-          model: Tenant,
-          where: { domain: tenantDomain },
-          attributes: ["id", "name", "domain"],
-        }
-      ]
+    // Create or find demo user for Phase 3
+    let user = await User.findOne({
+      where: { email: "john.doe@example.com" }
     });
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      const passwordHash = await bcrypt.hash("CMPE-131@2026", 10);
+
+      user = await User.create({
+        name: "John Doe",
+        email: "john.doe@example.com",
+        passwordHash,
+        tenantId: tenant.id,
+      });
     }
 
-    const validPassword = await bcrypt.compare(password, user.passwordHash);
-    if (!validPassword) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    const flightReservations = req.body.flight_reservations || req.body.flightReservations || [];
+    const hotelReservations = req.body.hotel_reservations || req.body.hotelReservations || [];
 
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        tenantId: user.tenantId,
-      },
-      getJwtSecret(),
-      { expiresIn: "24h" }
-    );
+    const flightTotal = flightReservations.reduce((sum, flight) => {
+      return sum + Number(
+        flight.Total_Price ||
+        flight.totalPrice ||
+        flight.price ||
+        flight.Price ||
+        flight.Total_Amount ||
+        0
+      );
+    }, 0);
 
-    return res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        tenantId: user.tenantId,
-        tenantDomain: user.tenantDomain,
-        tenantName: user.Tenant.name,
-      },
+    const hotelTotal = hotelReservations.reduce((sum, hotel) => {
+      return sum + Number(
+        hotel.Total_Price ||
+        hotel.totalPrice ||
+        hotel.price ||
+        hotel.Price ||
+        hotel.Total_Amount ||
+        0
+      );
+    }, 0);
+
+    const totalAmount =
+      Number(req.body.totalAmount) ||
+      Number(req.body.totalPrice) ||
+      Number(req.body.Total_Amount) ||
+      Number(req.body.total) ||
+      flightTotal + hotelTotal ||
+      1;
+
+    const bookingPayload = {
+      ...req.body,
+
+      userId: user.id,
+      tenantId: tenant.id,
+      totalAmount,
+
+      status: req.body.status || "confirmed",
+      startDate: req.body.startDate || req.body.Start_Date,
+      endDate: req.body.endDate || req.body.End_Date,
+    };
+
+    const booking = await Booking.create(bookingPayload);
+
+    return res.status(201).json({
+      message: "Booking created successfully",
+      booking,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Login failed" });
+    console.error("Booking create error:", error);
+
+    return res.status(500).json({
+      message: "Failed to create booking",
+      error: error.message,
+    });
   }
 });
 
 // POST /api/v1/bookings
 router.post("/bookings", async (req, res) => {
   try {
-    const booking = await Booking.create(req.body);
-    return res.status(201).json({ booking });
+    console.log("Incoming booking body:", req.body);
+
+    const requestedUserId = req.body.userId || req.body.User_Id || req.body.User_ID || 1;
+    const requestedTenantId = req.body.tenantId || req.body.Agent_Id || req.body.agentId || 1;
+
+    // Use requested IDs if they exist, otherwise fall back to the first real DB records
+    let tenant = await Tenant.findByPk(requestedTenantId);
+    if (!tenant) {
+      tenant = await Tenant.findOne();
+    }
+
+    let user = await User.findByPk(requestedUserId);
+    if (!user) {
+      user = await User.findOne();
+    }
+
+    if (!tenant) {
+      return res.status(500).json({
+        message: "Failed to create booking",
+        error: "No tenant exists in the database. Seed or create a tenant first."
+      });
+    }
+
+    if (!user) {
+      return res.status(500).json({
+        message: "Failed to create booking",
+        error: "No user exists in the database. Seed or create a user first."
+      });
+    }
+
+    const flightReservations = req.body.flight_reservations || req.body.flightReservations || [];
+    const hotelReservations = req.body.hotel_reservations || req.body.hotelReservations || [];
+
+    const flightTotal = flightReservations.reduce((sum, flight) => {
+      return sum + Number(
+        flight.Total_Price ||
+        flight.totalPrice ||
+        flight.price ||
+        flight.Price ||
+        0
+      );
+    }, 0);
+
+    const hotelTotal = hotelReservations.reduce((sum, hotel) => {
+      return sum + Number(
+        hotel.Total_Price ||
+        hotel.totalPrice ||
+        hotel.price ||
+        hotel.Price ||
+        0
+      );
+    }, 0);
+
+    const totalAmount =
+      Number(req.body.totalAmount) ||
+      Number(req.body.totalPrice) ||
+      Number(req.body.Total_Amount) ||
+      Number(req.body.total) ||
+      flightTotal + hotelTotal ||
+      1;
+
+    const bookingPayload = {
+      ...req.body,
+
+      // Use real database IDs to avoid foreign key errors
+      userId: user.id,
+      tenantId: tenant.id,
+
+      totalAmount,
+      status: req.body.status || "confirmed",
+      startDate: req.body.startDate || req.body.Start_Date,
+      endDate: req.body.endDate || req.body.End_Date,
+    };
+
+    const booking = await Booking.create(bookingPayload);
+
+    return res.status(201).json({
+      message: "Booking created successfully",
+      booking,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to create booking" });
+    console.error("Booking create error:", error);
+
+    return res.status(500).json({
+      message: "Failed to create booking",
+      error: error.message,
+    });
   }
 });
 
