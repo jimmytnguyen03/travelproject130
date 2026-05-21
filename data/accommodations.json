@@ -1,0 +1,20 @@
+[
+  {
+    "id": "AC001",
+    "name": "London Budget Hostel",
+    "location": "Central London",
+    "pricePerNight": 35
+  },
+  {
+    "id": "AC002",
+    "name": "Thrifty Stay Hostel",
+    "location": "Zone 2 London",
+    "pricePerNight": 42
+  },
+  {
+    "id": "AC003",
+    "name": "Backpacker Hub",
+    "location": "King's Cross",
+    "pricePerNight": 28
+  }
+]

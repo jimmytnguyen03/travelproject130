@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ACT001",
+    "name": "Free Walking Tour",
+    "category": "Walking Tour",
+    "price": 0
+  },
+  {
+    "id": "ACT002",
+    "name": "British Museum Visit",
+    "category": "Museum",
+    "price": 0
+  },
+  {
+    "id": "ACT003",
+    "name": "River Thames Cruise",
+    "category": "Boat Tour",
+    "price": 22
+  },
+  {
+    "id": "ACT004",
+    "name": "Tower of London Ticket",
+    "category": "Attraction",
+    "price": 39
+  },
+  {
+    "id": "ACT005",
+    "name": "Harry Potter Studio Tour",
+    "category": "Day Tour",
+    "price": 95
+  },
+  {
+    "id": "ACT006",
+    "name": "Hyde Park Stroll",
+    "category": "Park",
+    "price": 0
+  },
+  {
+    "id": "ACT007",
+    "name": "Tate Modern Gallery",
+    "category": "Museum",
+    "price": 0
+  },
+  {
+    "id": "ACT008",
+    "name": "Southbank Riverside Walk",
+    "category": "Walking Tour",
+    "price": 0
+  }
+]

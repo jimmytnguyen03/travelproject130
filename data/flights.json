@@ -1,0 +1,29 @@
+[
+  {
+    "id": "FL001",
+    "airline": "Budget Air",
+    "departureAirport": "SFO",
+    "arrivalAirport": "LON",
+    "departDate": "2026-06-10",
+    "returnDate": "2026-06-17",
+    "price": 620
+  },
+  {
+    "id": "FL002",
+    "airline": "Student Sky",
+    "departureAirport": "SFO",
+    "arrivalAirport": "LON",
+    "departDate": "2026-06-10",
+    "returnDate": "2026-06-17",
+    "price": 710
+  },
+  {
+    "id": "FL003",
+    "airline": "Demo Atlantic",
+    "departureAirport": "SFO",
+    "arrivalAirport": "LON",
+    "departDate": "2026-06-10",
+    "returnDate": "2026-06-17",
+    "price": 840
+  }
+]
