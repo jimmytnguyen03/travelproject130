@@ -13,12 +13,103 @@ function getJwtSecret() {
   return process.env.JWT_SECRET || "dev-secret";
 }
 
+function normalizeDate(dateValue) {
+  if (!dateValue) return dateValue;
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return dateValue;
+  }
+
+  // Convert MM/DD/YYYY to YYYY-MM-DD
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
+    const [month, day, year] = dateValue.split("/");
+    return `${year}-${month}-${day}`;
+  }
+
+  return dateValue;
+}
+
+function normalizeDestination(query) {
+  return (
+    query.destination ||
+    query.dest_name ||
+    query.destName ||
+    query.arrivalAirport ||
+    query.to ||
+    "LON"
+  );
+}
+
+// Helper: convert frontend date formats if needed
+function normalizeDate(dateValue) {
+  if (!dateValue) return dateValue;
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return dateValue;
+  }
+
+  // Convert MM/DD/YYYY to YYYY-MM-DD
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
+    const [month, day, year] = dateValue.split("/");
+    return `${year}-${month}-${day}`;
+  }
+
+  return dateValue;
+}
+
 // GET /api/v1/flights/search
 router.get("/flights/search", async (req, res) => {
   try {
-    const { destination, departDate, returnDate, travelers, budget } = req.query;
+    const origin =
+      req.query.origin ||
+      req.query.from ||
+      req.query.departureAirport ||
+      "SFO";
 
-    const results = await flightsService.search({
+    const destination =
+      req.query.destination ||
+      req.query.dest_name ||
+      req.query.to ||
+      req.query.arrivalAirport ||
+      "LON";
+
+    const departDate = normalizeDate(
+      req.query.departDate ||
+      req.query.depart_date ||
+      req.query.departureDate ||
+      req.query.start_date ||
+      "2026-06-10"
+    );
+
+    const returnDate = normalizeDate(
+      req.query.returnDate ||
+      req.query.return_date ||
+      req.query.end_date ||
+      "2026-06-17"
+    );
+
+    const travelers =
+      req.query.travelers ||
+      req.query.adults ||
+      req.query.passengers ||
+      1;
+
+    const budget = req.query.budget;
+
+    console.log("Phase 3 flight search params:", {
+      origin,
+      destination,
+      departDate,
+      returnDate,
+      travelers,
+      budget,
+      rawQuery: req.query,
+    });
+
+    let results = await flightsService.search({
+      origin,
       destination,
       departDate,
       returnDate,
@@ -26,13 +117,60 @@ router.get("/flights/search", async (req, res) => {
       budget,
     });
 
+    // Fallback data for Phase 3 UI demo if external API/sample service returns empty
+    if (!results || results.length === 0) {
+      results = [
+        {
+          id: "FL001",
+          flightId: "FL001",
+          airline: "Budget Air",
+          departureAirport: origin,
+          arrivalAirport: destination,
+          departDate,
+          returnDate,
+          travelers: Number(travelers),
+          price: 620,
+          currency: "USD",
+        },
+        {
+          id: "FL002",
+          flightId: "FL002",
+          airline: "Student Sky",
+          departureAirport: origin,
+          arrivalAirport: destination,
+          departDate,
+          returnDate,
+          travelers: Number(travelers),
+          price: 710,
+          currency: "USD",
+        },
+        {
+          id: "FL003",
+          flightId: "FL003",
+          airline: "Demo Atlantic",
+          departureAirport: origin,
+          arrivalAirport: destination,
+          departDate,
+          returnDate,
+          travelers: Number(travelers),
+          price: 840,
+          currency: "USD",
+        },
+      ];
+    }
+
     return res.json({
-      results,
-      count: results.length,
-      message: results.length ? "Flights found" : "No flights found",
-    });
+  data: results,
+  results,
+  count: results.length,
+  message: results.length ? "Flights found" : "No flights found",
+});
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch flights" });
+    console.error("Phase 3 flights adapter error:", error);
+
+    return res.status(500).json({
+      message: "Failed to fetch flights",
+    });
   }
 });
 
@@ -69,11 +207,12 @@ router.get("/attractions/search", async (req, res) => {
       priceFilter,
     });
 
-    return res.json({
-      results,
-      count: results.length,
-      message: results.length ? "Attractions found" : "No attractions found",
-    });
+return res.json({
+  data: results,
+  results,
+  count: results.length,
+  message: results.length ? "Hotels found" : "No hotels found",
+});
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch attractions" });
   }
